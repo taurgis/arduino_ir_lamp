@@ -10,7 +10,8 @@
 #define receiver_gnd 11
 
 long lastResult;
-
+int red = 100;
+int green = 200;
 int BRIGHTNESS = 100;
 
 IRrecv irrecv(receiver); //create a new instance of receiver
@@ -51,50 +52,70 @@ void setup() {
 
 void loop() {
   if (onoff) {
-    blueWhiteChase();
+    gradiant();
   } else {
     black();
   }
   delay(250);
 }
 
-
+unsigned long lastCommand = millis();
 // Interrupt handler.  Check for input from the IR sensor, update the proper settings if needed.
 ISR(TIMER1_OVF_vect) {
   static bool ledMode = false;
   long result;
   if (irrecv.decode(&results)) { //we have received an IR code
-    if (results.value == -1) {
-      result = lastResult;
-    } else {
-      result = results.value;
-    }
-    
-    Serial.println(result);  // not actually intending to use serial in ISR, just added now to see what is going on with result value.
-    switch (result) {
-      case 16761405:   // Button 1
-        onoff = !onoff;
-        break;
-      case 16754775:   // Button 2
-        if (BRIGHTNESS < 200) {
-          BRIGHTNESS += 25;
-          strip.setBrightness(BRIGHTNESS);
-        }
-        // do something
-        break;
-      case 16769055:   // Button 2
-        if (BRIGHTNESS >  25) {
-          BRIGHTNESS -= 25;
-          strip.setBrightness(BRIGHTNESS);
-        }
-        // do something
-        break;
-        // many more cases in switch
-    }  // switch
+    if (( millis() - lastCommand) > 350) {
+      lastCommand = millis();
+      if (results.value == -1) {
+        result = lastResult;
+      } else {
+        result = results.value;
+      }
 
-    lastResult = result;
+      Serial.println(result);  // not actually intending to use serial in ISR, just added now to see what is going on with result value.
+      switch (result) {
+        case 16761405:   // Button 1
+          onoff = !onoff;
+          break;
+        case 16754775:   // Button 2
+          if (BRIGHTNESS < 200) {
+            BRIGHTNESS += 25;
+            strip.setBrightness(BRIGHTNESS);
+          }
+          // do something
+          break;
+        case 16769055:   // Button 2
+          if (BRIGHTNESS >  25) {
+            BRIGHTNESS -= 25;
+            strip.setBrightness(BRIGHTNESS);
+          }
+          // do something
+          break;
+        case 16753245:
+          if (green < 250) {
+            red -= 12.5;
+            green += 25;
+          }
+          break;
+
+        case 16769565:
+          if (green > 0) {
+            red += 12.5;
+            green -= 25;
+          }
+
+          break;
+          // many more cases in switch
+      }  // switch
+
+      lastResult = result;
+    } // if
+
     irrecv.resume(); //next value
-  } // if
+  }
+
+   
 }
 
 void black() {
@@ -119,4 +140,27 @@ void blueWhiteChase() {
   }
   strip.show();
   i = (i + 1) % 6;
+}
+
+
+int startPixel = 0;
+
+// sp is a local variable that will be the actual first pixel that we write to
+void gradiant() {
+  int sp = startPixel;
+
+  for ( int i = 0; i < NUMLEDS; i++ ) {
+    strip.setPixelColor(sp, red, i, green );
+
+    if ( sp == NUMLEDS )
+      sp = 0;
+    else
+      sp++;
+  }
+
+  strip.show();
+
+  startPixel++;
+  if ( startPixel == 133 )
+    startPixel = 0;
 }
