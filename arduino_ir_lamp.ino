@@ -12,7 +12,7 @@
 long lastResult;
 int red = 100;
 int green = 200;
-int BRIGHTNESS = 100;
+int BRIGHTNESS =  50;
 
 IRrecv irrecv(receiver); //create a new instance of receiver
 decode_results results;
@@ -52,7 +52,7 @@ void setup() {
 
 void loop() {
   if (onoff) {
-    rainbowCycle();
+    blueWhiteChase();
   } else {
     black();
   }
@@ -163,50 +163,4 @@ void gradiant() {
   startPixel++;
   if ( startPixel == 133 )
     startPixel = 0;
-}
-
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle() {
-  uint16_t i, j;
-
-  for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
-    if (onoff) {
-      for (i = 0; i < strip.numPixels(); i++) {
-        if (onoff) {
-          strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
-
-        }
-      }
-
-      strip.show();
-      delay(100);
-    }
-  }
-}
-
-void rainbow() {
-  uint16_t i, j;
-
-  for (j = 0; j < 256; j++) {
-    for (i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel((i + j) & 255));
-    }
-
-    strip.show();
-  }
-}
-
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if (WheelPos < 85) {
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3, 0);
-  }
-  if (WheelPos < 170) {
-    WheelPos -= 85;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3, 0);
-  }
-  WheelPos -= 170;
-  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0, 0);
 }
