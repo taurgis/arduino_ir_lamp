@@ -52,7 +52,7 @@ void setup() {
 
 void loop() {
   if (onoff) {
-    blueWhiteChase();
+    gradiant();
   } else {
     black();
   }
@@ -126,22 +126,6 @@ void black() {
 
   strip.show();
 }
-
-void blueWhiteChase() {
-  static int i = 0;
-  for (int j = -5; j < NUMLEDS; j = j + 6) {
-    if (j + i < 0);
-    strip.setPixelColor(j + i, 0, 0, 30);
-    strip.setPixelColor(j + i + 1, 0, 0, 100);
-    strip.setPixelColor(j + i + 2, 0, 0, 255);
-    strip.setPixelColor(j + i + 3, 30, 30, 30);
-    strip.setPixelColor(j + i + 4, 90, 90, 90);
-    strip.setPixelColor(j + i + 5, 180, 180, 180);
-  }
-  strip.show();
-  i = (i + 1) % 6;
-}
-
 
 int startPixel = 0;
 
