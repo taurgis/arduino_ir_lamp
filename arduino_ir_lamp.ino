@@ -16,6 +16,14 @@ int BRIGHTNESS = 100;
 
 IRrecv irrecv(receiver); //create a new instance of receiver
 decode_results results;
+
+// Parameter 1 = number of pixels in strip
+// Parameter 2 = pin number (most are valid)
+// Parameter 3 = pixel type flags, add together as needed:
+//   NEO_RGB     Pixels are wired for RGB bitstream
+//   NEO_GRB     Pixels are wired for GRB bitstream
+//   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
+//   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
 bool onoff; //defines the current state of the LEDs
 
@@ -32,13 +40,30 @@ void setup() {
   digitalWrite(receiver_gnd, LOW);
   irrecv.enableIRIn(); //start the receiver
 
+  // Set up Timer/Counter1 for ~100 Hz interrupt
+  TCCR1A  = _BV(WGM11);      // Mode 14 (fast PWM), 1:64 prescale
+  TCCR1B  = _BV(WGM13) | _BV(WGM12) | _BV(CS11) | _BV(CS10);
+  ICR1    = F_CPU / 64 / 100; // ~100 Hz
+  TIMSK1 |= _BV(TOIE1);      // Enable overflow interrupt
+
   onoff = false;
 }
 
-unsigned long lastCommand = millis();
+
 void loop() {
+  if (onoff) {
+    rainbowCycle();
+  } else {
+    black();
+  }
+  delay(100);
+}
+
+unsigned long lastCommand = millis();
+// Interrupt handler.  Check for input from the IR sensor, update the proper settings if needed.
+ISR(TIMER1_OVF_vect) {
+  static bool ledMode = false;
   long result;
-  
   if (irrecv.decode(&results)) { //we have received an IR code
     if (( millis() - lastCommand) > 350) {
       lastCommand = millis();
@@ -89,14 +114,8 @@ void loop() {
 
     irrecv.resume(); //next value
   }
-  
-  if (onoff) {
-    gradiant();
-  } else {
-    black();
-  }
-  
-  delay(100);
+
+
 }
 
 void black() {
@@ -144,4 +163,50 @@ void gradiant() {
   startPixel++;
   if ( startPixel == 133 )
     startPixel = 0;
+}
+
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle() {
+  uint16_t i, j;
+
+  for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
+    if (onoff) {
+      for (i = 0; i < strip.numPixels(); i++) {
+        if (onoff) {
+          strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+
+        }
+      }
+
+      strip.show();
+      delay(100);
+    }
+  }
+}
+
+void rainbow() {
+  uint16_t i, j;
+
+  for (j = 0; j < 256; j++) {
+    for (i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel((i + j) & 255));
+    }
+
+    strip.show();
+  }
+}
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3, 0);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3, 0);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0, 0);
 }
