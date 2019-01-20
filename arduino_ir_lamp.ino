@@ -16,14 +16,6 @@ int BRIGHTNESS = 100;
 
 IRrecv irrecv(receiver); //create a new instance of receiver
 decode_results results;
-
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_RGB     Pixels are wired for RGB bitstream
-//   NEO_GRB     Pixels are wired for GRB bitstream
-//   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
-//   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
 bool onoff; //defines the current state of the LEDs
 
@@ -40,30 +32,13 @@ void setup() {
   digitalWrite(receiver_gnd, LOW);
   irrecv.enableIRIn(); //start the receiver
 
-  // Set up Timer/Counter1 for ~100 Hz interrupt
-  TCCR1A  = _BV(WGM11);      // Mode 14 (fast PWM), 1:64 prescale
-  TCCR1B  = _BV(WGM13) | _BV(WGM12) | _BV(CS11) | _BV(CS10);
-  ICR1    = F_CPU / 64 / 100; // ~100 Hz
-  TIMSK1 |= _BV(TOIE1);      // Enable overflow interrupt
-
   onoff = false;
 }
 
-
-void loop() {
-  if (onoff) {
-    gradiant();
-  } else {
-    black();
-  }
-  delay(250);
-}
-
 unsigned long lastCommand = millis();
-// Interrupt handler.  Check for input from the IR sensor, update the proper settings if needed.
-ISR(TIMER1_OVF_vect) {
-  static bool ledMode = false;
+void loop() {
   long result;
+  
   if (irrecv.decode(&results)) { //we have received an IR code
     if (( millis() - lastCommand) > 350) {
       lastCommand = millis();
@@ -114,8 +89,14 @@ ISR(TIMER1_OVF_vect) {
 
     irrecv.resume(); //next value
   }
-
-   
+  
+  if (onoff) {
+    gradiant();
+  } else {
+    black();
+  }
+  
+  delay(100);
 }
 
 void black() {
