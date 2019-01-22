@@ -1,150 +1,244 @@
+//import the necessary libraries
+#define FASTLED_ALLOW_INTERRUPTS 0
+#include "FastLED.h"
+#include "IRremote.h"
 
-#include <Adafruit_NeoPixel.h>
-#include <IRremote.h>
+//define some variables
+#define LEDPIN     6
+#define RECV_PIN  2
+#define LED_TYPE     NEOPIXEL
+#define NUM_LEDS    133
+#define BRIGHTNESS  50
+CRGB leds[NUM_LEDS];
+CRGB endclr;
+CRGB midclr;
 
-#define PIN 6    // led strand pin
-#define NUMLEDS 133
-
-#define receiver 7  // IR receiver pin 
-#define receiver_vcc 12 // using signal pins to supple vcc and ground to ir receiver
-#define receiver_gnd 11
-
-long lastResult;
-int red = 100;
-int green = 200;
-int BRIGHTNESS =  50;
-
-IRrecv irrecv(receiver); //create a new instance of receiver
+//set up IR receiver information
+IRrecv irrecv(RECV_PIN);
 decode_results results;
 
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_RGB     Pixels are wired for RGB bitstream
-//   NEO_GRB     Pixels are wired for GRB bitstream
-//   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
-//   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
-bool onoff; //defines the current state of the LEDs
-
-void setup() {
+//<————————————————————————————SETUP————————————————————————————>
+void setup()
+{
+  //begin serial communication
   Serial.begin(9600);
-  strip.setBrightness(BRIGHTNESS);
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+  //sanity delay
+  delay(3000);
+  //start the receiver
+  irrecv.enableIRIn();
 
-  pinMode(receiver_vcc, OUTPUT);
-  pinMode(receiver_gnd, OUTPUT);
-  pinMode(receiver, INPUT_PULLUP);
-  digitalWrite(receiver_vcc, HIGH);
-  digitalWrite(receiver_gnd, LOW);
-  irrecv.enableIRIn(); //start the receiver
-
-  // Set up Timer/Counter1 for ~100 Hz interrupt
-  TCCR1A  = _BV(WGM11);      // Mode 14 (fast PWM), 1:64 prescale
-  TCCR1B  = _BV(WGM13) | _BV(WGM12) | _BV(CS11) | _BV(CS10);
-  ICR1    = F_CPU / 64 / 100; // ~100 Hz
-  TIMSK1 |= _BV(TOIE1);      // Enable overflow interrupt
-
-  onoff = false;
+  //set up LED strip information
+  FastLED.addLeds<LED_TYPE, LEDPIN>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.setBrightness(BRIGHTNESS);
 }
-
-
+uint8_t gHue = 0;
+int lastResult;
+//<—————————————————————————LOOP———————————————————————————————>
 void loop() {
-  if (onoff) {
-    gradiant();
-  } else {
-    black();
+  EVERY_N_MILLISECONDS( 20 ) {
+    gHue++;
   }
-  delay(100);
-}
+  if (irrecv.decode(&results)) {
+     int result;
+    //rotating base colour used by many of the patterns
 
-unsigned long lastCommand = millis();
-// Interrupt handler.  Check for input from the IR sensor, update the proper settings if needed.
-ISR(TIMER1_OVF_vect) {
-  static bool ledMode = false;
-  long result;
-  if (irrecv.decode(&results)) { //we have received an IR code
-    if (( millis() - lastCommand) > 350) {
-      lastCommand = millis();
-      if (results.value == -1) {
-        result = lastResult;
-      } else {
-        result = results.value;
+    FastLED.delay(1000 / 120);
+    if(results.value == 4294967295) {
+      result = lastResult;
+    } else {
+      result = results.value;
+    }
+    
+    lastResult = result;
+    
+    Serial.println(results.value);  // not
+
+    //<——————————————————BUTTON FUNCTIONS—————————————————————————>
+    //power button = plain white
+    if (results.value == 16761405) {
+      fill_solid(leds, NUM_LEDS, CRGB::White);
+      FastLED.show();
+    }
+
+    //vol+ = brightness up
+    if (results.value == 16754775) {
+      FastLED.setBrightness(255);
+      FastLED.show();
+    }
+
+    //vol- = brightness down
+    if (results.value == 16769055) {
+      fadeLightBy(leds, NUM_LEDS, 30);
+      FastLED.show();
+    }
+
+    //play/pause = cycles through colours
+    if (results.value == 16736925) {
+      uint8_t i = beatsin8(130, 0, 150);
+      fill_solid(leds, NUM_LEDS, CHSV(i, 255, 150));
+      FastLED.show();
+    }
+
+    //left = Custom gradient blend
+    if (results.value == 0xFD20DF) {
+      uint8_t speed = beatsin8(10, 0, 255);
+      endclr = blend(CHSV(160, 185, 255), CRGB::Pink, speed);
+      midclr = blend(CRGB::Purple, CRGB::Green, speed);
+
+      fill_gradient_RGB(leds, 0, endclr, NUM_LEDS / 2, midclr);
+      fill_gradient_RGB(leds, NUM_LEDS / 2 + 1, midclr, NUM_LEDS, endclr);
+      FastLED.show();
+    }
+
+    //right = Custom solid colour
+    if (results.value == 0xFD609F) {
+      fill_solid(leds, NUM_LEDS, CRGB::Purple);
+      FastLED.show();
+    }
+
+
+    //func/stop = xmas
+    if (results.value == 0xFD40BF) {
+      uint8_t dot = beatsin8(50, 0, NUM_LEDS);
+      leds[dot] = CRGB::Red;
+      leds[dot + 1] = CRGB::Green;
+      FastLED.show();
+    }
+
+
+    //up = bpm
+    if (results.value == 16769565) {
+      CRGBPalette16 palette = PartyColors_p;
+      uint8_t beat = beatsin8( 70, 64, 255);
+      for ( int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
       }
+      FastLED.show();
+    }
 
-      Serial.println(result);  // not actually intending to use serial in ISR, just added now to see what is going on with result value.
-      switch (result) {
-        case 16761405:   // Button 1
-          onoff = !onoff;
-          break;
-        case 16754775:   // Button 2
-          if (BRIGHTNESS < 200) {
-            BRIGHTNESS += 25;
-            strip.setBrightness(BRIGHTNESS);
-          }
-          // do something
-          break;
-        case 16769055:   // Button 2
-          if (BRIGHTNESS >  25) {
-            BRIGHTNESS -= 25;
-            strip.setBrightness(BRIGHTNESS);
-          }
-          // do something
-          break;
-        case 16753245:
-          if (green < 250) {
-            red -= 12.5;
-            green += 25;
-          }
-          break;
+    //down = fire
+    if (results.value == 0xFD10EF) {
+      CRGBPalette16 palette = HeatColors_p;
+      uint8_t beat = beatsin8( 50, 64, 255);
+      for ( int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
+      }
+      FastLED.show();
+    }
 
-        case 16769565:
-          if (green > 0) {
-            red += 12.5;
-            green -= 25;
-          }
+    //eq = rainbow
+    if (results.value == 0xFDB04F) {
+      fill_rainbow( leds, NUM_LEDS - 3, gHue, 7);
+      leds[12] = CRGB::Blue;   //adjust the rainbow slightly towards the purple end
+      leds[13] = CRGB::Purple;
+      leds[14] = CRGB::Purple;
+      FastLED.show();
+    }
 
-          break;
-          // many more cases in switch
-      }  // switch
+    //st/rept = rainbow w stars
+    if (results.value == 0xFD708F) {
+      fill_rainbow( leds, NUM_LEDS - 3, gHue, 7);
+      leds[12] = CRGB::Blue;
+      leds[13] = CRGB::Purple;
+      leds[14] = CRGB::Purple;
+      addGlitter(70);
+      FastLED.show();
+    }
 
-      lastResult = result;
-    } // if
+    // 0 = day
+    if (results.value == 0xFD30CF) {
+      uint8_t speed = beatsin8(8, 0, 255);
+      endclr = blend(CRGB::Yellow, CHSV(0, 0, 170), speed);
+      midclr = blend(CHSV(0, 0, 150), CRGB::Yellow, speed);
 
-    irrecv.resume(); //next value
+      fill_gradient_RGB(leds, 0, endclr, NUM_LEDS / 2, midclr);
+      fill_gradient_RGB(leds, NUM_LEDS / 2 + 1, midclr, NUM_LEDS, endclr);
+      FastLED.show();
+    }
+
+    // 1 = sunrise (pink & blue)
+    if (results.value == 16724175) {
+      fill_gradient(leds, 0, CHSV(160, 185, 210), NUM_LEDS - 1, CHSV(237, 141, 255));
+      FastLED.show();
+    }
+
+    // 2 = sunset (orange & blue)
+    if (results.value == 16718055) {
+      fill_gradient_RGB(leds, 0, CHSV(150, 255, 200), NUM_LEDS - 1, CHSV(25, 255, 255));
+      FastLED.show();
+    }
+
+    // 3 = sunrise to sunset
+    if (results.value == 16743045) {
+      uint8_t speed = beatsin8(10, 0, 255);
+      endclr = blend(CHSV(150, 255, 210), CHSV(160, 185, 200), speed);
+      midclr = blend(CHSV(25, 255, 255), CHSV(237, 141, 255), speed);
+
+      fill_gradient_RGB(leds, 0, endclr, NUM_LEDS / 2, midclr);
+      fill_gradient_RGB(leds, NUM_LEDS / 2 + 1, midclr, NUM_LEDS, endclr);
+      FastLED.show();
+    }
+
+    // 4 = night
+    if (results.value == 16716015) {
+      fill_gradient_RGB(leds, 0, CHSV(160, 255, 150), NUM_LEDS - 1, CHSV(180, 230, 80));
+      FastLED.show();
+    }
+
+    // 5 = starry night
+    if (results.value == 16726215) {
+      fill_gradient_RGB(leds, 0, CHSV(160, 255, 150), NUM_LEDS - 1, CHSV(180, 230, 80));
+      addGlitter(80);
+      FastLED.show();
+    }
+
+    // 6 = rain
+    if (results.value == 16734885) {
+      fadeToBlackBy( leds, NUM_LEDS, 30);
+      int pos = random16(NUM_LEDS);
+      leds[pos] = CHSV(135, 80, 200);
+      FastLED.show();
+    }
+
+    // 7 = acid rain
+    if (results.value == 851901943) {
+      fadeToBlackBy( leds, NUM_LEDS, 130);
+      int pos = random16(NUM_LEDS);
+      leds[pos] = CRGB::Green;
+      FastLED.show();
+    }
+
+    // 8 = snow
+    if (results.value == 16730805) {
+      fadeToBlackBy( leds, NUM_LEDS, 30);
+      addGlitter(50);
+      FastLED.show();
+    }
+
+    // 9 = storm
+    if (results.value == 16732845) {
+      fadeToBlackBy( leds, NUM_LEDS, 30);
+      fill_solid(leds, NUM_LEDS, CHSV(0, 0, 50));
+      addGlitter(60);
+      lightning();
+      FastLED.show();
+    }
+
+    irrecv.resume(); // Receive the next value
   }
-
-
 }
 
-void black() {
-  for (uint16_t i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor( i, strip.Color(0, 0, 0 ) );
+//<——————————————————————OTHER FUNCTIONS————————————————————>
 
+void addGlitter( fract8 chanceOfGlitter)
+{ if ( random8() < chanceOfGlitter) {
+    leds[ random16(NUM_LEDS) ] += CRGB::White;
   }
-
-  strip.show();
 }
 
-int startPixel = 0;
-
-// sp is a local variable that will be the actual first pixel that we write to
-void gradiant() {
-  int sp = startPixel;
-
-  for ( int i = 0; i < NUMLEDS; i++ ) {
-    strip.setPixelColor(sp, red, i, green );
-
-    if ( sp == NUMLEDS )
-      sp = 0;
-    else
-      sp++;
+void lightning ()
+{ EVERY_N_MILLISECONDS (4000) {
+    uint8_t i = beatsin8(6, 0, 255);
+    fill_solid(leds, NUM_LEDS, CHSV(160, 10, i));
   }
-
-  strip.show();
-
-  startPixel++;
-  if ( startPixel == 133 )
-    startPixel = 0;
 }
