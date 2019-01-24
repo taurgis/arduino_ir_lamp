@@ -97,18 +97,6 @@ void loop() {
         FastLED.show();
       }
 
-      //left = Custom gradient blend
-      if (result == 0xFD20DF) {
-        uint8_t speed = beatsin8(10, 0, 255);
-        endclr = blend(CHSV(160, 185, 255), CRGB::Pink, speed);
-        midclr = blend(CRGB::Purple, CRGB::Green, speed);
-
-        fill_gradient_RGB(leds, 0, endclr, NUM_LEDS / 2, midclr);
-        fill_gradient_RGB(leds, NUM_LEDS / 2 + 1, midclr, NUM_LEDS, endclr);
-        FastLED.show();
-      }
-
-
       if (result == 16769565) {
         uint8_t i = beatsin8(130, 0, 150);
         uint8_t j = beatsin8(180, 0, 150);
@@ -162,18 +150,18 @@ void loop() {
       }
 
       // 7 = acid rain
-      if (result == 851901943) {
-
+      if (result == 16728765) {
+        fill_solid(leds, NUM_LEDS, CRGB::FairyLight);
       }
 
       // 8 = snow
       if (result == 16730805) {
-
+        fill_solid(leds, NUM_LEDS, CRGB::ForestGreen);
       }
 
       // 9 = storm
       if (result == 16732845) {
-
+        fill_solid(leds, NUM_LEDS, CRGB::FairyLightNCC );
       }
 
       irrecv.resume(); // Receive the next value
