@@ -208,9 +208,10 @@ void loop() {
           shortResult = 12;
         }
 
-        if ((result != 16769055) && (result != 16754775) && (result != 16761405) && (result > 12)) {
+        if ((result != 16769055) && (result != 16754775) && (result != 16761405) && (result > 12) && (shortResult != lastMode)) {
           Serial.print("Saving mode: ");
           Serial.println(shortResult);
+
           lastMode = shortResult;
           EEPROM.write(0, shortResult);
         }
