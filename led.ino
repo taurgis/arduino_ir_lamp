@@ -27,6 +27,9 @@ void initLedstrip() {
   onoff = false;
 }
 
+/**
+ * 
+ */
 void setLampState(long int result) {
   if (result == 16761405) {
         onoff = !onoff;

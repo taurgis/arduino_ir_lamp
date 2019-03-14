@@ -13,10 +13,18 @@ decode_results results;
 unsigned long lastCommand = millis();
 long int lastvalue;
 
+/**
+ * Initialize the IR receiver library.
+ */
 void initIR() {
   irrecv.enableIRIn();
 }
 
+/**
+ * Read and decode the Infrared signals received. But only accept a signal 
+ * if it has been more if it has been longer than half a second (to prevent 
+ * accidental long presses of buttons to change the state).
+ */
 void readIR() {
   if (irrecv.decode(&results)) {
     if (( millis() - lastCommand) > 500) {
@@ -32,6 +40,7 @@ void readIR() {
 
       Serial.println(result);
 
+      // Update the led strip based on the signal
       setLampState(result);
 
       irrecv.resume(); // Receive the next value
