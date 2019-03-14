@@ -1,12 +1,38 @@
+// define the LED variables
+#define LEDPIN     8
+
+#define LED_TYPE     WS2811
+#define NUM_LEDS    133
+
+// All leds in the strip as a FastLED object.
+CRGB leds[NUM_LEDS];
 CRGB endclr;
 CRGB midclr;
+
+// The main state of the lamp (true = on, false = off)
+boolean onoff;
+
+/**
+ * Initialize the LED strip as a typical LED strip with type WS2811.
+ * 
+ * Always start the lamp with color "Black" to turn it off.
+ */
+void initLedstrip() {
+  //sanity delay
+  delay(3000);
+  FastLED.addLeds<LED_TYPE, LEDPIN>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.setBrightness(BRIGHTNESS);
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
+  onoff = false;
+}
 
 void setLampState(long int result) {
   if (result == 16761405) {
         onoff = !onoff;
         if (onoff) {
-          if (lastMode > 0 && lastMode < 13) {
-            result = lastMode;
+          if (LAST_MODE > 0 && LAST_MODE < 13) {
+            result = LAST_MODE;
             Serial.print("Overwriting mode: ");
             Serial.println(result);
           } else {
@@ -138,11 +164,11 @@ void setLampState(long int result) {
           shortResult = 12;
         }
 
-        if ((result != 16769055) && (result != 16754775) && (result != 16761405) && (result > 12) && (shortResult != lastMode)) {
+        if ((result != 16769055) && (result != 16754775) && (result != 16761405) && (result > 12) && (shortResult != LAST_MODE)) {
           Serial.print("Saving mode: ");
           Serial.println(shortResult);
 
-          lastMode = shortResult;
+          LAST_MODE = shortResult;
           EEPROM.write(0, shortResult);
         }
       }
