@@ -31,6 +31,8 @@ void initLedstrip() {
  * 
  */
 void setLampState(long int result) {
+  FastLED.delay(1000 / 120);
+        
   if (result == 16761405) {
         onoff = !onoff;
         if (onoff) {

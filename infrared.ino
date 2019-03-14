@@ -29,7 +29,7 @@ void readIR() {
   if (irrecv.decode(&results)) {
     if (( millis() - lastCommand) > 500) {
       lastCommand = millis();
-      FastLED.delay(1000 / 120);
+
       long int result = results.value;
 
       if (results.value == rep) {
