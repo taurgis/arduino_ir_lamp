@@ -1,6 +1,6 @@
 /**
- * This file contains all functions in relation to the Infrared Receiver.
- */
+   This file contains all functions in relation to the Infrared Receiver.
+*/
 
 // The code that is sent when a repetition signal is sent (e.g. holding down the + button)
 #define rep 4294967295
@@ -14,17 +14,17 @@ unsigned long lastCommand = millis();
 long int lastvalue;
 
 /**
- * Initialize the IR receiver library.
- */
+   Initialize the IR receiver library.
+*/
 void initIR() {
   irrecv.enableIRIn();
 }
 
 /**
- * Read and decode the Infrared signals received. But only accept a signal 
- * if it has been more if it has been longer than half a second (to prevent 
- * accidental long presses of buttons to change the state).
- */
+   Read and decode the Infrared signals received. But only accept a signal
+   if it has been more if it has been longer than half a second (to prevent
+   accidental long presses of buttons to change the state).
+*/
 void readIR() {
   if (irrecv.decode(&results)) {
     if (( millis() - lastCommand) > 500) {
