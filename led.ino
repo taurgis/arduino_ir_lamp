@@ -22,9 +22,18 @@ void initLedstrip() {
   delay(3000);
   FastLED.addLeds<LED_TYPE, LEDPIN>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
+
+  if (LAST_MODE > 0 && LAST_MODE < 13) {
+    onoff = true;
+    setLampState(LAST_MODE);
+  } else {
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+    onoff = false;
+
+  }
+
   FastLED.show();
-  onoff = false;
+
 }
 
 /**
@@ -48,6 +57,7 @@ void setLampState(long int result) {
       }
     } else {
       fill_solid(leds, NUM_LEDS, CRGB::Black);
+      EEPROM.write(0, 255);
       FastLED.show();
     }
   }

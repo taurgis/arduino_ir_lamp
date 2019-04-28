@@ -57,6 +57,6 @@ void loadSettings() {
     BRIGHTNESS = brightnessFromMemory;
   }
 
-  Serial.print(" with brightness");
+  Serial.print(" with brightness ");
   Serial.println(BRIGHTNESS);
 }
