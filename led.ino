@@ -19,7 +19,7 @@ boolean onoff;
 */
 void initLedstrip() {
   //sanity delay
-  delay(3000);
+  delay(1000);
   FastLED.addLeds<LED_TYPE, LEDPIN>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(BRIGHTNESS);
 

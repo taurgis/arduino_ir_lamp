@@ -7,7 +7,7 @@
 int BRIGHTNESS = 50;
 
 // The main variable to store the last set mode of the lamp (which color mode)
-long int LAST_MODE = 0;
+long int LAST_MODE = 255;
 
 /**
    The main setup function.
